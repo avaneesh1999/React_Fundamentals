@@ -1,16 +1,38 @@
 import React, { Component } from "react";
-import { getMovies } from "./MovieService";
+//import { getMovies } from "./MovieService";
+import axios from "axios";
 
 export default class Movies extends Component {
   constructor(props) {
     super(props);
-    
+
     //all permanent operations are used through state:-Delete
     this.state = {
-      movies: getMovies(),
+      movies: [],
       currsearchtext: "",
       currpage: 1,
+      genres: [{ _id: "abcd", name: "All Genres" }],
+      cGenre: "All Genres",
     };
+  }
+
+  //network request
+
+  async componentDidMount() {
+    console.log("Component DID Mount");
+    let res = await axios.get(
+      "https://backend-react-movie.herokuapp.com/movies"
+    );
+    let genreRes = await axios.get(
+      "https://backend-react-movie.herokuapp.com/genres"
+    );
+    console.log(res.data.movies);
+    console.log(genreRes.data.genres);
+    this.setState({
+      movies: res.data.movies,
+      //spread operator adds this generes to state generes
+      genres: [...this.state.genres, ...genreRes.data.genres],
+    });
   }
 
   handledelete = (id) => {
@@ -28,6 +50,7 @@ export default class Movies extends Component {
       currsearchtext: val,
     });
   };
+  //hjgskc
 
   sortbyStocks = (e) => {
     let className = e.target.className;
@@ -65,17 +88,25 @@ export default class Movies extends Component {
     });
   };
 
-  handlepageChange=(pagenumber)=>{
-      this.setState({
-          currpage:pagenumber
-      })
+  handlepageChange = (pagenumber) => {
+    this.setState({
+      currpage: pagenumber,
+    });
+  };
+
+  handlegenre=(genre)=>{
+    this.setState({
+      cGenre:genre
+    })
   }
 
   render() {
     console.log("render");
     //searching is temporary operations thats why we created local variable Filtered Movies here
-    let { movies, currsearchtext, currpage } = this.state;
+    let { movies, currsearchtext, currpage,genres,cGenre} = this.state;
     let FilteredMovies = [];
+
+    //pagenation
 
     if (currsearchtext !== "") {
       FilteredMovies = movies.filter((movieobj) => {
@@ -86,7 +117,14 @@ export default class Movies extends Component {
       FilteredMovies = movies;
     }
 
-    //pagenation
+    //GenreFilter
+
+    if(cGenre!='All Genres'){
+      FilteredMovies=FilteredMovies.filter(function(movieobj){
+        return movieobj.genre.name==cGenre
+      })    }
+
+    
 
     let limit = 4;
     let pagenumber = Math.ceil(FilteredMovies.length / limit);
@@ -100,10 +138,26 @@ export default class Movies extends Component {
     let ei = si + limit;
 
     FilteredMovies = FilteredMovies.slice(si, ei);
+
+
+    
     return (
       <>
+      {this.state.movies.length == 0 ? <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+      </div> :
         <div className="row">
-          <div className="col-3">GOKU</div>
+          <div className="col-3">
+            <ul className="list-group">
+              {
+                genres.map(genresObj=>(
+                  <li onClick={()=>this.handlegenre(genresObj.name)} key={genresObj._id} className="list-group-item">{genresObj.name}</li>
+                ))
+              }
+            </ul>
+
+            <h5>Current GENRE:{cGenre}</h5>
+          </div>
           <div className="col-9">
             <input type="search" onChange={this.handlechange}></input>
             <table className="table">
@@ -163,28 +217,33 @@ export default class Movies extends Component {
               </tbody>
             </table>
             <nav aria-label="...">
-  <ul className="pagination">
-
-      {
-          pagenumberArr.map((pagenumber)=>{
-              let classStyle=pagenumber==currpage?'page-item active':'page-item';
-              return(
-                <li onClick={()=>this.handlepageChange(pagenumber)} className={classStyle}><span className="page-link">{pagenumber}</span></li>
-                  
-              )
-          })
-      }
-    </ul>
-    </nav>
+              <ul className="pagination">
+                {pagenumberArr.map((pagenumber) => {
+                  let classStyle =
+                    pagenumber == currpage ? "page-item active" : "page-item";
+                  return (
+                    <li
+                      onClick={() => this.handlepageChange(pagenumber)}
+                      className={classStyle}
+                    >
+                      <span className="page-link">{pagenumber}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
           </div>
         </div>
+  }  
       </>
     );
   }
 }
 
-{/* <li class="page-item"><a class="page-link" href="#">1</a></li>
+{
+  /* <li class="page-item"><a class="page-link" href="#">1</a></li>
 <li class="page-item active" aria-current="page">
   <a class="page-link" href="#">2</a>
 </li>
-<li class="page-item"><a class="page-link" href="#">3</a></li> */}
+<li class="page-item"><a class="page-link" href="#">3</a></li> */
+}
